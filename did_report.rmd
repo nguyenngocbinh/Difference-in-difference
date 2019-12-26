@@ -1,0 +1,290 @@
+---
+title: "Phân tích khác biệt trong khác biệt"
+author: "Nguyễn Ngọc Bình"
+date: "December 25, 2019"
+output:
+  html_document: 
+    code_download: true
+    # code_folding: hide
+    number_sections: yes
+    theme: "default"
+    toc: TRUE
+    toc_float: TRUE
+    dev: 'svg'
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Phương pháp
+
+## Giới thiệu phương pháp
+
+Thông thường, sau (hoặc trước) khi ban hành 1 chính sách, chương trình hay sản phẩm, người quản lý cần phải tính toán hiệu quả hay tác động của chính sách xem có đạt được mục tiêu đề ra hay không. Để đo lường hiệu quả của chính sách, cần phải bóc tách được các yếu tố tác động lên đối tượng của chính sách.
+
+Ước lượng khác biệt trong khác biệt (difference in difference viết tắt DID) là phương một trong các phương pháp thông dụng đánh giá tác động.
+
+Ký hiệu: Y: kết quả chịu tác động của chính sách (ví dụ: chi tiêu thẻ, số ngày quá hạn, số lượng thẻ mở mới ...); D là biến giả xác định 1 đối tượng có thuộc diện bị chi phối bởi chính sách hay không (D = 1 nếu đối tượng bị chi phối, D = 0 nếu đối tượng không bị chi phối với chính sách).
+
+Về mặt thời gian, ta có \(Y_0 \) là kết quả thời điểm chưa thi hành chính sách, \(Y_1\) là kết quả tại thời điểm đã thi hành chính sách. Vậy, đối với nhóm bị chi phối bởi chính sách công, kết quả thay đổi từ \(Y_0[D=1]\) thành  \(Y_1[D=1]\), đối với nhóm không bị chi phối bởi chính sách kết quả thay đổi từ  \(Y_0[D=0]\) thành  \(Y_1[D=0]\).
+
+Chú ý: Ta không thể coi tác động của chính sách là sự khác biệt giữa kết quả sau và trước khi chính sách thi hành. Lý do, nếu so sánh như vậy sẽ bị tác động bởi những biến động theo thời gian. Ví dụ: Thực tế chính sách không hề tác động tới số lượng thẻ mở mới, nhưng theo thời gian, số lượng thẻ mở mới vẫn tăng lên và ta có  \(Y_1[D=1] -  Y_0[D=1] > 0\) . 
+
+Tương tự ta cũng không thể coi tác động của chính sách là sự khác biệt về kết quả giữa nhóm **BỊ CHI PHỐI** và nhóm **KHÔNG BỊ CHI PHỐI** \(Y_1[D=1] - Y_0[D=0] > 0\)
+
+Đồ thị dưới đây mô tả phương pháp này:
+
+![](../figures/d_i_d_graph.png)
+
+Theo thời gian, nhóm kiểm soát (control group) (ví dụ: tỷ lệ quá hạn) không chịu tác động của chính sách, tỷ lệ quá hạn sẽ thay đổi từ  \(Y_0[D=0]\) thành \(Y_1[D=0] \) . Vì nhóm này không chịu tác động của chính sách nên ta có thể coi  \(Y_1[D=0]-(Y_0[D=0] \) là sự thay đổi theo xu thế thời gian.
+
+Vậy, nếu không có chính sách, thì thay đổi tỷ lệ quá hạn của nhóm xử lý(treatment group) = nhóm kiểm soát  \(DIF_A =Y_1[D=1]-Y_0[D=1]  = Y_1[D=0]-Y_0[D=0] \) 
+
+Nếu không có chính sách thì tỷ lệ quá hạn của nhóm xử lý vào thời điểm t = 1:
+
+\[A = Y_0[D=1] + \{(Y_1[D=0]-Y_0[D=0]\} = Y_0[D=1] + DIF_A\] 
+
+Vì có chính sách nên tỷ lệ quá hạn thực tế của nhóm xử lý vào thời điểm t = 1: \( B = Y1[D=1]\)
+
+
+Như vậy, tác động của chính sách là:
+
+\[ B - A =  \{Y_1[D=1] - Y_0[D=1]\} - \{Y_1[D=0] - Y_0[D=0]\} = DIF_B - DIF_A\]
+
+Lưu ý: Giả định quan trọng của phương pháp DID là nếu như không có chính sách thì hai nhóm control và treament có cùng xu thế vận động theo thời gian (điều này có thể đúng và có thể sai trên thực tế). Giả định này được gọi là giả định song song. Chỉ khi nào giả định này đúng thì ta mới áp dụng được DID
+
+## Kết hợp DID với OLS
+
+Ta có thể kết hợp ước lượng DID bằng cách chạy hồi quy OLS với phương trình như sau:
+
+\[ Y = \beta_0 + \beta_1*D + \beta_2*T + \beta_3(D*T) + \epsilon\]
+
+Trong đó: 
+
+- D là biến giả về nhóm xử lý/ kiểm soát: D=1 là nhóm xử lý, D=0 là nhóm kiểm soát
+
+- T là biến giả về thời gian: T=1 là sau khi thi hành chính sách, T=0 là trước khi thi hành chính sách
+
+- D*T là biến tương tác của hai biến giả D và T
+
+Ý nghĩa của hệ số hồi quy như sau:
+
+- Đối với nhóm kiểm soát trước khi thi hành chính sách ta có D=0 và T=0: \(E[Y_0[D=0]] = \beta_0\)
+
+- Đối với nhóm biến xử lý trước khi thi hành chính sách ta có D=1 và T=0: \(E[Y_0[D=1]] = \beta_0 + \beta_1\)
+
+- Đối với nhóm biến kiểm soát sau khi thi hành chính sách ta có D=0 và T=1: \(E[Y_0[D=1]] = \beta_0 + \beta_2\)
+
+- Đối với nhóm biến xử lý sau khi thi hành chính sách ta có D=1, T=1: \(E[Y_0[D=1]] = \beta_0 + \beta_1 + \beta_2 + \beta_3\) 
+
+Khác biệt trong khác biệt (DID)
+
+\[ DIF_B - DIF_A = (\beta_0 + \beta_1 + \beta_2 + \beta_3) - (\beta_0 + \beta_1) - [(\beta_0 + \beta_2) - \beta_0] = \beta_3\] 
+
+Vậy, sau khi chạy hồi quy, ta sẽ có ước lượng tác động cảu chính sách theo phương pháp DID là \(\hat\beta_3\)
+
+Ta biết rằng, biến kết quả Y còn có thể chịu tác động của nhiều yếu tố khác, ngoài tác động của chính sách và thời gian. Vì vậy, mô hình đầy đủ với các biến giải thích như sau:
+
+\[Y = \beta_0 + \beta_1*D + \beta_2*T + \beta_3(D*T) + \gamma*X  + \epsilon\]
+
+\(\hat\beta_3\) vẫn là ước lượng khác biệt trong khác biệt
+
+# Ví dụ
+
+## Dữ liệu giả lập
+
+```{r}
+# set sample size
+n <- 200
+
+# define treatment effect
+TEffect <- 4
+
+# generate treatment dummy
+TDummy <- c(rep("Control", n/2), rep("Treatment", n/2))
+
+# simulate pre- and post-treatment values of the dependent variable
+set.seed(158)
+y_pre <- 7 + rnorm(n)
+y_pre[1:n/2] <- y_pre[1:n/2] - 1
+y_post <- 7 + 2 + TEffect * (TDummy == "Treatment") + rnorm(n)
+y_post[1:n/2] <- y_post[1:n/2] - 1 
+
+d <- data.frame("Y" = c(y_pre,y_post),
+                "Treatment" = TDummy, 
+                "Period" = c(rep("0", n), rep("1", n)))
+
+
+
+```
+
+## Tính toán DID
+
+Giả sử y là tỷ lệ quá hạn
+
+Khi đó ta có:
+
+yC0 là tỷ lệ quá hạn của nhóm kiểm soát tại kỳ thứ nhất
+yt0 là tỷ lệ quá hạn của nhóm xử lý tại kỳ thứ nhất
+yc1 là tỷ lệ quá hạn của nhóm kiểm soát tại kỳ thứ hai
+yt1 là tỷ lệ quá hạn của nhóm xử lý tại kỳ thứ hai
+
+Khi đó, kết quả DID sẽ như sau:
+
+```{r}
+yC0 <- mean(d[d$Treatment != "Treatment" & d$Period ==0,]$Y)
+yt0 <- mean(d[d$Treatment == "Treatment" & d$Period ==0,]$Y)
+yc1 <- mean(d[d$Treatment != "Treatment" & d$Period !=0,]$Y)
+yt1 <- mean(d[d$Treatment == "Treatment" & d$Period !=0,]$Y)
+
+did <- yt1 - (yc1-yC0 + yt0)
+
+did
+```
+
+
+## Tính DID theo phương pháp hồi quy OLS
+
+Hai cách viết dưới đây là tương đương
+```{r}
+m1 <- lm(Y ~ Treatment + Period + Treatment * Period, data = d)
+m1
+```
+
+
+```{r}
+m2 <- lm(Y ~ Treatment * Period, data = d)
+m2
+```
+
+Kết quả DID = \(\hat\beta_3\)
+
+```{r}
+m2$coefficients[["TreatmentTreatment:Period1"]]
+```
+
+Giống với kết quả DID tính bằng tay
+
+- Viết hàm để so sánh
+
+```{r}
+fdid <- function(dat){
+  dat$Treatment <- as.factor(dat$Treatment)
+  dat$Period <- as.factor(dat$Period)
+  
+  yC0 <- mean(dat[dat$Treatment != "Treatment" & dat$Period ==0,]$Y)
+  yt0 <- mean(dat[dat$Treatment == "Treatment" & dat$Period ==0,]$Y)
+  yc1 <- mean(dat[dat$Treatment != "Treatment" & dat$Period !=0,]$Y)
+  yt1 <- mean(dat[dat$Treatment == "Treatment" & dat$Period !=0,]$Y)
+  
+  did <- yt1 - (yc1-yC0 + yt0)
+  
+  # reg
+  m <- lm(formula = Y ~ Treatment * Period, data = dat)
+  did_reg <- m$coefficients[["TreatmentTreatment:Period1"]]
+  
+  print(m)
+  
+  print(paste0("manual: ", did, " <-> ", "reg: ", did_reg))
+  
+  return(did_reg)
+}
+
+```
+
+
+## Tính DID theo phương pháp hồi quy OLS và có thêm biến X
+
+### Dữ liệu 
+
+- Lấy dữ liệu từ package panelr là dữ liệu nghiên cứu về tiền lương theo các thời kỳ
+
+```{r}
+# if (!require("panelr")) install.packages("panelr")
+data("WageData", package = "panelr")
+```
+
+- Giả sử nhóm treatment là các nhóm có id <= 100, các nhóm còn lại là nhóm kiểm soát
+
+```{r}
+Wages <- WageData
+Wages$Treatment <- "Control"
+Wages[Wages$id <= 100, ]$Treatment <- "Treatment"
+
+```
+
+- Giả sử lấy 2 kỳ t = 1 và t = 7 để xem thay đổi
+
+```{r}
+Wages <- Wages[Wages$t == 1 | Wages$t == 7, ]
+Wages$Period <- 0
+Wages[Wages$t == 7, ]$Period <- 1
+
+```
+
+```{r}
+# check data
+table(Wages$Treatment, Wages$Period)
+```
+
+
+```{r}
+# dependent variable
+Wages$Y <- Wages$lwage
+```
+
+### Mô hình X không liên tục
+
+Ví dụ với biến X = south (=1 là người miền nam, =0 nếu không phải)
+
+Ta quan sát xem tiền lương thay đổi bao nhiêu phần trăm (do biến phụ thuộc là lwage)
+
+```{r}
+fdid(Wages)
+
+```
+
+Như vậy, chính sách tác động làm tăng  `r round(fdid(Wages),4)*100`% tiền lương
+
+- So sánh tác động của chính sách với người miền bắc và miền nam
+
+```{r}
+fdid(Wages[Wages$south == 1,])
+fdid(Wages[Wages$south == 0,])
+```
+
+Như vậy, DID với miền nam `r round(fdid(Wages[Wages$south == 1,]), 4)*100`% và DID với miền bắc `r round(fdid(Wages[Wages$south == 0,]),4)*100`%
+
+- **Chú ý: Phương trình hồi quy với nhiều biến X thì phải viết dưới dạng tích thì mới tách được DID**
+
+```{r}
+m1 <- lm(Y ~ Treatment * Period * south, data = Wages)
+m1
+```
+
+Kết quả **TreatmentTreatment:Period** trên giống với trường hợp 
+
+```{r}
+fdid(Wages[Wages$south == 0,])
+```
+
+
+### Mô hình với biến X liên tục
+
+Ví dụ với biến X = exp
+
+```{r}
+m1 <- lm(Y ~ Treatment * Period * exp, data = Wages)
+m1
+```
+
+Tương tự DID là giá trị của biến **TreatmentTreatment:Period**: `r m1$coefficients[["TreatmentTreatment:Period"]]`
+
+```{r}
+m1 <- lm(Y ~ Treatment * Period * exp * south, data = Wages)
+m1
+```
+
